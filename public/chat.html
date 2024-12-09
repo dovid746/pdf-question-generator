@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF Question Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        #main-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        #pdf-upload-container {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            text-align: center;
+        }
+        #audience-container {
+            margin-top: 20px;
+            display: none;
+        }
+        #questions-container {
+            margin-top: 20px;
+        }
+        .question-card {
+            background-color: #f8f9fa;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        #pdf-status {
+            margin-top: 10px;
+            font-style: italic;
+            color: #666;
+        }
+        .success {
+            color: #4caf50;
+        }
+        .error {
+            color: #f44336;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #2196f3;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #1976d2;
+        }
+        #loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div id="main-container">
+        <h1>PDF Question Generator</h1>
+        
+        <div id="pdf-upload-container">
+            <h3>Step 1: Upload PDF Document</h3>
+            <input type="file" id="pdf-input" accept=".pdf">
+            <button onclick="uploadPDF()">Upload PDF</button>
+            <div id="pdf-status"></div>
+        </div>
+
+        <div id="audience-container">
+            <h3>Step 2: Describe Your Audience</h3>
+            <p>Describe who will be reading this document (e.g., "college students", "medical professionals", "business executives")</p>
+            <input type="text" id="audience-input" placeholder="Enter your audience description...">
+            <button onclick="generateQuestions()">Generate Questions</button>
+        </div>
+
+        <div id="loading">Generating questions...</div>
+        <div id="questions-container"></div>
+    </div>
+
+    <script>
+        const pdfStatus = document.getElementById('pdf-status');
+        const audienceContainer = document.getElementById('audience-container');
+        const questionsContainer = document.getElementById('questions-container');
+        const loading = document.getElementById('loading');
+
+        async function uploadPDF() {
+            const fileInput = document.getElementById('pdf-input');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                pdfStatus.textContent = 'Please select a PDF file first';
+                pdfStatus.className = 'error';
+                return;
+            }
+
+            if (file.type !== 'application/pdf') {
+                pdfStatus.textContent = 'Please upload only PDF files';
+                pdfStatus.className = 'error';
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('pdf', file);
+
+            pdfStatus.textContent = 'Uploading and processing PDF...';
+            pdfStatus.className = '';
+
+            try {
+                const response = await fetch('/upload-pdf', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    pdfStatus.textContent = `PDF processed successfully! Pages: ${data.pageCount}`;
+                    pdfStatus.className = 'success';
+                    audienceContainer.style.display = 'block';
+                } else {
+                    pdfStatus.textContent = data.error || 'Error processing PDF';
+                    pdfStatus.className = 'error';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                pdfStatus.textContent = 'Error uploading PDF';
+                pdfStatus.className = 'error';
+            }
+        }
+
+        async function generateQuestions() {
+            const audienceInput = document.getElementById('audience-input');
+            const audience = audienceInput.value.trim();
+            
+            if (!audience) {
+                alert('Please describe your audience');
+                return;
+            }
+
+            loading.style.display = 'block';
+            questionsContainer.innerHTML = '';
+
+            try {
+                const response = await fetch('/generate-questions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ audience })
+                });
+
+                const data = await response.json();
+                loading.style.display = 'none';
+
+                if (response.ok && data.questions) {
+                    data.questions.forEach(question => {
+                        const questionDiv = document.createElement('div');
+                        questionDiv.className = 'question-card';
+                        questionDiv.textContent = question;
+                        questionsContainer.appendChild(questionDiv);
+                    });
+                } else {
+                    throw new Error(data.error || 'Failed to generate questions');
+                }
+            } catch (error) {
+                loading.style.display = 'none';
+                alert('Error generating questions: ' + error.message);
+            }
+        }
+    </script>
+</body>
+</html>

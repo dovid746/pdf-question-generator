@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minimal Notes with Timer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: #000;
+            font-family: monospace;
+            color: #0f0;
+        }
+
+        #timer {
+            font-size: 3em;
+            margin-bottom: 2em;
+            letter-spacing: 0.1em;
+        }
+
+        #display {
+            color: #0f0;
+            font-size: 2em;
+            letter-spacing: 0.1em;
+            height: 1.2em;
+            overflow: hidden;
+            white-space: pre;
+            padding: 10px;
+            border: none;
+            background: transparent;
+            outline: none;
+            caret-color: #0f0;
+        }
+
+        #hiddenInput {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #controls {
+            position: absolute;
+            top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .control-btn {
+            background: transparent;
+            border: 1px solid #0f0;
+            color: #0f0;
+            padding: 5px 15px;
+            cursor: pointer;
+            font-family: monospace;
+            transition: all 0.3s ease;
+        }
+
+        .control-btn:hover {
+            background: #0f0;
+            color: #000;
+        }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <button class="control-btn" onclick="setTimer(5)">5:00</button>
+        <button class="control-btn" onclick="setTimer(10)">10:00</button>
+        <button class="control-btn" onclick="setTimer(15)">15:00</button>
+        <button class="control-btn" onclick="setTimer(25)">25:00</button>
+        <button class="control-btn" onclick="toggleTimer()">Start/Stop</button>
+        <button class="control-btn" onclick="resetTimer()">Reset</button>
+    </div>
+    <div id="timer">25:00</div>
+    <div id="display"></div>
+    <textarea id="hiddenInput" autofocus></textarea>
+    <script>
+        const display = document.getElementById('display');
+        const hiddenInput = document.getElementById('hiddenInput');
+        const timerDisplay = document.getElementById('timer');
+        let fullText = '';
+        let timeLeft = 25 * 60; // 25 minutes in seconds
+        let timerInterval = null;
+        let isTimerRunning = false;
+
+        function updateDisplay() {
+            const lastChars = fullText.slice(-25);
+            display.textContent = lastChars + '█';
+        }
+
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = seconds % 60;
+            return `${String(minutes).padStart(2, '0')}:${String(remainingSeconds).padStart(2, '0')}`;
+        }
+
+        function updateTimer() {
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                timerDisplay.style.color = '#ff0000';
+                return;
+            }
+            timeLeft--;
+            timerDisplay.textContent = formatTime(timeLeft);
+        }
+
+        function setTimer(minutes) {
+            clearInterval(timerInterval);
+            timeLeft = minutes * 60;
+            timerDisplay.textContent = formatTime(timeLeft);
+            timerDisplay.style.color = '#0f0';
+            isTimerRunning = false;
+        }
+
+        function toggleTimer() {
+            if (isTimerRunning) {
+                clearInterval(timerInterval);
+                isTimerRunning = false;
+            } else {
+                if (timeLeft <= 0) return;
+                timerInterval = setInterval(updateTimer, 1000);
+                isTimerRunning = true;
+            }
+        }
+
+        function resetTimer() {
+            clearInterval(timerInterval);
+            setTimer(25); // Reset to 25 minutes
+            isTimerRunning = false;
+        }
+
+        hiddenInput.addEventListener('input', (e) => {
+            fullText = e.target.value;
+            updateDisplay();
+        });
+
+        // Keep focus on hidden input
+        document.addEventListener('click', () => {
+            hiddenInput.focus();
+        });
+
+        // Initial display
+        updateDisplay();
+    </script>
+</body>
+</html>
